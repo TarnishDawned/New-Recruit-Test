@@ -1,0 +1,7 @@
+# Compiled output / build artifacts
+*.exe
+*.o
+*.obj
+*.out
+
+build/
