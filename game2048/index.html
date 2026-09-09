@@ -129,6 +129,24 @@
     .board { gap: 8px; padding: 8px; border-radius: 8px; }
     .cell { border-radius: 4px; }
   }
+
+  /* ============ 深色主题（默认浅色；<html data-theme="dark"> 时生效） ============ */
+  [data-theme='dark'] body { background: #20242a; color: #d8d3cb; }
+  [data-theme='dark'] .title { color: #ece6dd; }
+  [data-theme='dark'] .subtitle { color: #a9a49b; }
+  [data-theme='dark'] .board { background: #3a3e45; }
+  [data-theme='dark'] .cell { background: #4a4f57; color: #4a4f57; }
+  [data-theme='dark'] .score-box { background: #2c3037; }
+  [data-theme='dark'] .score-label { color: #c9c4bc; }
+  [data-theme='dark'] .btn { background: #4c5560; }
+  [data-theme='dark'] .btn:hover { background: #5b6571; }
+  [data-theme='dark'] .btn-ghost { background: #383c43; }
+  [data-theme='dark'] .btn-ghost:hover { background: #434850; }
+  [data-theme='dark'] .overlay { background: rgba(25, 28, 33, 0.78); }
+  [data-theme='dark'] .overlay-title { color: #ece6dd; }
+  [data-theme='dark'] .overlay-text { color: #b3aea6; }
+  [data-theme='dark'] .hint { color: #a9a49b; }
+  [data-theme='dark'] .hint-rule { color: #8f8a82; }
 </style>
 </head>
 <body>
@@ -149,6 +167,7 @@
         <span class="score-value" id="best">0</span>
       </div>
       <button class="btn" id="restart" type="button">重新开始</button>
+      <button class="btn btn-ghost" id="theme-toggle" type="button">🌙 深色</button>
     </div>
   </header>
 
@@ -189,6 +208,7 @@
   var btnContinue = document.getElementById('btn-continue');
   var btnRestartTop = document.getElementById('restart');
   var btnRestartOverlay = document.getElementById('btn-restart-overlay');
+  var themeBtn = document.getElementById('theme-toggle');
 
   /* 经典 2048 方块配色：value -> {背景色, 文字色} */
   var TILE_COLORS = {
@@ -229,6 +249,27 @@
     try { window.localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* 存储不可用时忽略 */ }
   }
   var bestScore = loadBestScore();
+
+  /* ============ 主题切换（light/dark，localStorage 持久化） ============ */
+  var THEME_KEY = '2048.theme';
+  function loadTheme() {
+    try {
+      return window.localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+    } catch (e) { return 'light'; }
+  }
+  function saveTheme(t) {
+    try { window.localStorage.setItem(THEME_KEY, t); } catch (e) { /* 存储不可用时忽略 */ }
+  }
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️ 浅色' : '🌙 深色';
+  }
+  function toggleTheme() {
+    var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    saveTheme(next);
+  }
 
   function emptyGrid() {
     var g = [];
@@ -393,10 +434,11 @@
           cell.textContent = v;
           cell.setAttribute('data-value', v);
           if (v >= 1024) cell.className = 'cell cell-lg';
+          var style = tileStyle(v);
+          cell.style.background = style.bg;
+          cell.style.color = style.fg;
         }
-        var style = tileStyle(v);
-        cell.style.background = style.bg;
-        cell.style.color = style.fg;
+        /* 空格不设内联颜色：背景由 CSS 主题控制，方块色阶不变 */
         boardEl.appendChild(cell);
       }
     }
@@ -462,6 +504,7 @@
   btnRestartTop.addEventListener('click', newGame);
   btnRestartOverlay.addEventListener('click', newGame);
   btnContinue.addEventListener('click', continueGame);
+  themeBtn.addEventListener('click', toggleTheme);
 
   /* ============ 10. 调试接口 ============ */
   window.__game = {
@@ -476,6 +519,7 @@
   };
 
   /* ============ 11. 启动 ============ */
+  applyTheme(loadTheme()); // 恢复上次主题（默认 light，localStorage 不可用时静默回退）
   newGame();
 })();
 </script>
