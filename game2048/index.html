@@ -42,7 +42,7 @@
   }
   .subtitle { margin: 6px 0 0; font-size: 0.92rem; color: #a69a8f; }
 
-  .hud { display: flex; align-items: center; gap: 10px; }
+  .hud { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
   .score-box {
     min-width: 76px;
     text-align: center;
@@ -144,6 +144,10 @@
         <span class="score-label">分数 SCORE</span>
         <span class="score-value" id="score">0</span>
       </div>
+      <div class="score-box" aria-label="历史最高分">
+        <span class="score-label">最高分 BEST</span>
+        <span class="score-value" id="best">0</span>
+      </div>
       <button class="btn" id="restart" type="button">重新开始</button>
     </div>
   </header>
@@ -178,6 +182,7 @@
 
   var boardEl = document.getElementById('board');
   var scoreEl = document.getElementById('score');
+  var bestEl = document.getElementById('best');
   var overlayEl = document.getElementById('overlay');
   var overlayTitleEl = document.getElementById('overlay-title');
   var overlayTextEl = document.getElementById('overlay-text');
@@ -211,6 +216,19 @@
     status: 'playing' // 'playing' | 'won' | 'over'
   };
   var wonShown = false; // 2048 胜利提示只弹一次
+
+  /* Best Score：localStorage 持久化，历史最高分 */
+  var BEST_KEY = '2048.bestScore';
+  function loadBestScore() {
+    try {
+      var n = parseInt(window.localStorage.getItem(BEST_KEY), 10);
+      return isFinite(n) && n > 0 ? n : 0;
+    } catch (e) { return 0; }
+  }
+  function saveBestScore(v) {
+    try { window.localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* 存储不可用时忽略 */ }
+  }
+  var bestScore = loadBestScore();
 
   function emptyGrid() {
     var g = [];
@@ -383,6 +401,11 @@
       }
     }
 
+    if (state.score > bestScore) {
+      bestScore = state.score;
+      saveBestScore(bestScore);
+    }
+    bestEl.textContent = bestScore;
     scoreEl.textContent = state.score;
 
     if (state.status === 'won') {
@@ -448,7 +471,8 @@
     slideLine: slideLine,
     isGameOver: isGameOver,
     hasWon: hasWon,
-    render: render
+    render: render,
+    getBestScore: function () { return bestScore; },
   };
 
   /* ============ 11. 启动 ============ */
