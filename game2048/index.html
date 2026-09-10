@@ -122,6 +122,73 @@
   .hint { margin: 18px 0 0; text-align: center; font-size: 0.92rem; color: #a69a8f; }
   .hint-rule { margin: 6px 0 0; text-align: center; font-size: 0.82rem; color: #c0b4a8; }
 
+  /* ============ 游戏记录 ============ */
+  .history { margin-top: 26px; }
+  .history-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    margin-bottom: 10px;
+  }
+  .history-title { margin: 0; font-size: 1.15rem; font-weight: 800; color: #776e65; }
+  .history-note { margin: 0; font-size: 0.78rem; color: #a69a8f; }
+  .history-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .history-stat {
+    min-width: 0;
+    padding: 10px 8px;
+    text-align: center;
+    background: #f5efe7;
+    border: 1px solid #e4d9cb;
+    border-radius: 8px;
+  }
+  .history-stat-label { display: block; font-size: 0.7rem; color: #a69a8f; letter-spacing: 0.03em; }
+  .history-stat-value {
+    display: block;
+    margin-top: 2px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #776e65;
+    overflow-wrap: anywhere;
+  }
+  .history-panel {
+    margin-top: 10px;
+    overflow: hidden;
+    background: #f5efe7;
+    border: 1px solid #e4d9cb;
+    border-radius: 8px;
+  }
+  .history-head,
+  .history-row {
+    display: grid;
+    grid-template-columns: minmax(48px, 0.75fr) minmax(70px, 1.25fr) minmax(58px, 0.9fr) minmax(48px, 0.8fr);
+    gap: 8px;
+    align-items: center;
+    padding: 9px 10px;
+  }
+  .history-head { font-size: 0.72rem; color: #a69a8f; background: #efe4d8; }
+  .history-row { border-top: 1px solid #eadfd2; font-size: 0.88rem; color: #776e65; }
+  .history-game { font-weight: 700; white-space: nowrap; }
+  .history-score { text-align: right; font-weight: 700; white-space: nowrap; }
+  .history-tile { text-align: center; white-space: nowrap; }
+  .history-result { text-align: right; font-weight: 800; white-space: nowrap; }
+  .result-win { color: #2f7d4c; }
+  .result-loss { color: #b45f4b; }
+  .history-empty {
+    margin: 0;
+    padding: 18px 12px;
+    text-align: center;
+    color: #a69a8f;
+    font-size: 0.88rem;
+  }
+  @media (min-width: 480px) {
+    .history-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
   /* ============ 小屏适配 ============ */
   @media (max-width: 420px) {
     .page { padding: 14px 12px 24px; }
@@ -146,6 +213,18 @@
   [data-theme='dark'] .overlay-title { color: #ece6dd; }
   [data-theme='dark'] .overlay-text { color: #b3aea6; }
   [data-theme='dark'] .hint { color: #a9a49b; }
+  [data-theme='dark'] .history-title,
+  [data-theme='dark'] .history-stat-value { color: #ece6dd; }
+  [data-theme='dark'] .history-note,
+  [data-theme='dark'] .history-stat-label,
+  [data-theme='dark'] .history-head,
+  [data-theme='dark'] .history-empty { color: #a9a49b; }
+  [data-theme='dark'] .history-stat,
+  [data-theme='dark'] .history-panel { background: #2c3037; border-color: #414750; }
+  [data-theme='dark'] .history-head { background: #353a42; }
+  [data-theme='dark'] .history-row { border-color: #414750; color: #d8d3cb; }
+  [data-theme='dark'] .result-win { color: #7fd39b; }
+  [data-theme='dark'] .result-loss { color: #e29480; }
   [data-theme='dark'] .hint-rule { color: #8f8a82; }
 </style>
 </head>
@@ -188,6 +267,40 @@
   <p class="hint">键盘：方向键 ↑ ↓ ← → 移动 ｜ 手机：在棋盘上滑动</p>
   <p class="hint-rule">每次有效移动后会出现一个新数字（90% 是 2，10% 是 4）；相同数字相遇会合并。</p>
 
+  <section class="history" aria-labelledby="history-title">
+    <div class="history-heading">
+      <h2 class="history-title" id="history-title">游戏记录</h2>
+      <p class="history-note">完成一局后自动保存，最近保留 10 局</p>
+    </div>
+    <div class="history-stats">
+      <div class="history-stat">
+        <span class="history-stat-label">总游戏局数</span>
+        <span class="history-stat-value" id="history-total">0</span>
+      </div>
+      <div class="history-stat">
+        <span class="history-stat-label">历史最高分</span>
+        <span class="history-stat-value" id="history-best">0</span>
+      </div>
+      <div class="history-stat">
+        <span class="history-stat-label">历史最高数字</span>
+        <span class="history-stat-value" id="history-max-tile">0</span>
+      </div>
+      <div class="history-stat">
+        <span class="history-stat-label">胜利次数</span>
+        <span class="history-stat-value" id="history-wins">0</span>
+      </div>
+    </div>
+    <div class="history-panel">
+      <div class="history-head" aria-hidden="true">
+        <span>局数</span>
+        <span class="history-score">最终得分</span>
+        <span class="history-tile">最高数字</span>
+        <span class="history-result">结果</span>
+      </div>
+      <div class="history-list" id="history-list" role="list"></div>
+    </div>
+  </section>
+
 </div>
 
 <script>
@@ -209,6 +322,11 @@
   var btnRestartTop = document.getElementById('restart');
   var btnRestartOverlay = document.getElementById('btn-restart-overlay');
   var themeBtn = document.getElementById('theme-toggle');
+  var historyTotalEl = document.getElementById('history-total');
+  var historyBestEl = document.getElementById('history-best');
+  var historyMaxTileEl = document.getElementById('history-max-tile');
+  var historyWinsEl = document.getElementById('history-wins');
+  var historyListEl = document.getElementById('history-list');
 
   /* 经典 2048 方块配色：value -> {背景色, 文字色} */
   var TILE_COLORS = {
@@ -236,6 +354,7 @@
     status: 'playing' // 'playing' | 'won' | 'over'
   };
   var wonShown = false; // 2048 胜利提示只弹一次
+  var recordedThisGame = false; // 防止同一局重复写入历史
 
   /* Best Score：localStorage 持久化，历史最高分 */
   var BEST_KEY = '2048.bestScore';
@@ -270,6 +389,170 @@
     applyTheme(next);
     saveTheme(next);
   }
+
+  /* ============ 2.1 多局游戏记录（仅终局写入，localStorage 持久化） ============ */
+  var HISTORY_KEY = '2048.gameHistory';
+  var HISTORY_LIMIT = 10;
+
+  function createEmptyHistory() {
+    return {
+      totalGames: 0,
+      bestScore: 0,
+      maxTile: 0,
+      wins: 0,
+      records: []
+    };
+  }
+
+  function toNonNegativeInt(value) {
+    var n = Number(value);
+    if (!isFinite(n) || n < 0) return 0;
+    return Math.floor(n);
+  }
+
+  function normalizeHistoryRecord(record) {
+    if (!record || typeof record !== 'object') return null;
+    if (record.result !== 'win' && record.result !== 'loss') return null;
+    var id = toNonNegativeInt(record.id);
+    if (id < 1) return null;
+    return {
+      id: id,
+      score: toNonNegativeInt(record.score),
+      maxTile: toNonNegativeInt(record.maxTile),
+      result: record.result
+    };
+  }
+
+  function normalizeGameHistory(data) {
+    var clean = createEmptyHistory();
+    if (!data || typeof data !== 'object') return clean;
+
+    clean.totalGames = toNonNegativeInt(data.totalGames);
+    clean.bestScore = toNonNegativeInt(data.bestScore);
+    clean.maxTile = toNonNegativeInt(data.maxTile);
+    clean.wins = toNonNegativeInt(data.wins);
+
+    if (Array.isArray(data.records)) {
+      for (var i = 0; i < data.records.length && clean.records.length < HISTORY_LIMIT; i++) {
+        var record = normalizeHistoryRecord(data.records[i]);
+        if (record) clean.records.push(record);
+      }
+    }
+
+    var recentWins = 0;
+    for (var j = 0; j < clean.records.length; j++) {
+      clean.totalGames = Math.max(clean.totalGames, clean.records[j].id);
+      clean.bestScore = Math.max(clean.bestScore, clean.records[j].score);
+      clean.maxTile = Math.max(clean.maxTile, clean.records[j].maxTile);
+      if (clean.records[j].result === 'win') recentWins++;
+    }
+    clean.totalGames = Math.max(clean.totalGames, clean.records.length);
+    clean.wins = Math.max(clean.wins, recentWins);
+    clean.wins = Math.min(clean.wins, clean.totalGames);
+    return clean;
+  }
+
+  function loadGameHistory() {
+    try {
+      var raw = window.localStorage.getItem(HISTORY_KEY);
+      return raw ? normalizeGameHistory(JSON.parse(raw)) : createEmptyHistory();
+    } catch (e) {
+      return createEmptyHistory(); // localStorage 不可用或数据损坏时静默回退
+    }
+  }
+
+  function saveGameHistory() {
+    try {
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(gameHistory));
+    } catch (e) { /* 存储不可用时仍保留本次会话内记录 */ }
+  }
+
+  function getMaxTile() {
+    var max = 0;
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (state.grid[r][c] > max) max = state.grid[r][c];
+      }
+    }
+    return max;
+  }
+
+  function renderHistory() {
+    historyTotalEl.textContent = gameHistory.totalGames;
+    historyBestEl.textContent = gameHistory.bestScore;
+    historyMaxTileEl.textContent = gameHistory.maxTile;
+    historyWinsEl.textContent = gameHistory.wins;
+    historyListEl.innerHTML = '';
+
+    if (gameHistory.records.length === 0) {
+      var empty = document.createElement('p');
+      empty.className = 'history-empty';
+      empty.textContent = '还没有游戏记录，完成一局后会显示在这里。';
+      historyListEl.appendChild(empty);
+      return;
+    }
+
+    for (var i = 0; i < gameHistory.records.length; i++) {
+      var record = gameHistory.records[i];
+      var row = document.createElement('div');
+      row.className = 'history-row';
+      row.setAttribute('role', 'listitem');
+
+      var game = document.createElement('span');
+      game.className = 'history-game';
+      game.textContent = '第' + record.id + '局';
+
+      var score = document.createElement('span');
+      score.className = 'history-score';
+      score.textContent = record.score + ' 分';
+
+      var maxTile = document.createElement('span');
+      maxTile.className = 'history-tile';
+      maxTile.textContent = record.maxTile;
+
+      var result = document.createElement('span');
+      result.className = 'history-result ' +
+        (record.result === 'win' ? 'result-win' : 'result-loss');
+      result.textContent = record.result === 'win' ? '胜利' : '失败';
+
+      row.appendChild(game);
+      row.appendChild(score);
+      row.appendChild(maxTile);
+      row.appendChild(result);
+      historyListEl.appendChild(row);
+    }
+  }
+
+  function recordGameIfNeeded() {
+    if (recordedThisGame) return false;
+    if (state.status !== 'over' && state.status !== 'won') return false;
+
+    var maxTile = getMaxTile();
+    var result = (wonShown || maxTile >= TARGET) ? 'win' : 'loss';
+    var id = gameHistory.totalGames + 1;
+
+    gameHistory.totalGames = id;
+    gameHistory.bestScore = Math.max(gameHistory.bestScore, state.score);
+    gameHistory.maxTile = Math.max(gameHistory.maxTile, maxTile);
+    if (result === 'win') gameHistory.wins++;
+
+    gameHistory.records.unshift({
+      id: id,
+      score: state.score,
+      maxTile: maxTile,
+      result: result
+    });
+    if (gameHistory.records.length > HISTORY_LIMIT) {
+      gameHistory.records.length = HISTORY_LIMIT;
+    }
+
+    recordedThisGame = true; // 先锁定，避免保存或渲染期间再次进入记录
+    saveGameHistory();
+    renderHistory();
+    return true;
+  }
+
+  var gameHistory = loadGameHistory();
 
   function emptyGrid() {
     var g = [];
@@ -399,6 +682,7 @@
       state.status = 'won';
     } else if (isGameOver()) {
       state.status = 'over';
+      recordGameIfNeeded();
     }
     render();
     return true;
@@ -406,10 +690,14 @@
 
   /* ============ 7. 重开 / 继续 ============ */
   function newGame() {
+    if (state.status === 'over' || state.status === 'won') {
+      recordGameIfNeeded(); // 重开时补记已结束的终局；进行中的对局不记录
+    }
     state.grid = emptyGrid();
     state.score = 0;
     state.status = 'playing';
     wonShown = false;
+    recordedThisGame = false;
     spawnTile();
     spawnTile();
     render();
@@ -417,7 +705,10 @@
 
   function continueGame() {
     state.status = 'playing';
-    if (isGameOver()) state.status = 'over'; // 极少数：达成 2048 的同时已无可走
+    if (isGameOver()) {
+      state.status = 'over'; // 极少数：达成 2048 的同时已无可走
+      recordGameIfNeeded();
+    }
     render();
   }
 
@@ -520,6 +811,7 @@
 
   /* ============ 11. 启动 ============ */
   applyTheme(loadTheme()); // 恢复上次主题（默认 light，localStorage 不可用时静默回退）
+  renderHistory();
   newGame();
 })();
 </script>
