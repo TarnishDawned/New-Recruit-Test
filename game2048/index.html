@@ -122,6 +122,42 @@
   .hint { margin: 18px 0 0; text-align: center; font-size: 0.92rem; color: #a69a8f; }
   .hint-rule { margin: 6px 0 0; text-align: center; font-size: 0.82rem; color: #c0b4a8; }
 
+  /* ============ AI 自动游玩控制栏 ============ */
+  .ai-panel {
+    margin-top: 18px;
+    padding: 14px;
+    background: #f5efe7;
+    border: 1px solid #e4d9cb;
+    border-radius: 10px;
+  }
+  .ai-panel-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .ai-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: #776e65; }
+  .ai-status { margin: 4px 0 0; font-size: 0.86rem; color: #a69a8f; }
+  .ai-status[data-state='running'] { color: #2f7d4c; font-weight: 700; }
+  .ai-status[data-state='won'] { color: #a77a00; font-weight: 700; }
+  .ai-status[data-state='over'],
+  .ai-status[data-state='no-move'] { color: #b45f4b; font-weight: 700; }
+  .ai-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ai-actions .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    transform: none;
+  }
+  .ai-search {
+    margin: 9px 0 0;
+    font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: 0.76rem;
+    line-height: 1.45;
+    color: #a69a8f;
+    overflow-wrap: anywhere;
+  }
+
   /* ============ 游戏记录 ============ */
   .history { margin-top: 26px; }
   .history-heading {
@@ -226,6 +262,14 @@
   [data-theme='dark'] .result-win { color: #7fd39b; }
   [data-theme='dark'] .result-loss { color: #e29480; }
   [data-theme='dark'] .hint-rule { color: #8f8a82; }
+  [data-theme='dark'] .ai-panel { background: #2c3037; border-color: #414750; }
+  [data-theme='dark'] .ai-title { color: #ece6dd; }
+  [data-theme='dark'] .ai-status,
+  [data-theme='dark'] .ai-search { color: #a9a49b; }
+  [data-theme='dark'] .ai-status[data-state='running'] { color: #7fd39b; }
+  [data-theme='dark'] .ai-status[data-state='won'] { color: #e5c15d; }
+  [data-theme='dark'] .ai-status[data-state='over'],
+  [data-theme='dark'] .ai-status[data-state='no-move'] { color: #e29480; }
 </style>
 </head>
 <body>
@@ -263,6 +307,20 @@
       </div>
     </div>
   </div>
+
+  <section class="ai-panel" aria-labelledby="ai-title">
+    <div class="ai-panel-main">
+      <div>
+        <h2 class="ai-title" id="ai-title">AI 自动游玩</h2>
+        <p class="ai-status" id="ai-status" data-state="idle">AI 状态：未运行</p>
+      </div>
+      <div class="ai-actions">
+        <button class="btn" id="ai-start" type="button">AI 开始</button>
+        <button class="btn btn-ghost" id="ai-stop" type="button" disabled>AI 停止</button>
+      </div>
+    </div>
+    <p class="ai-search" id="ai-search">AI 搜索：等待启动</p>
+  </section>
 
   <p class="hint">键盘：方向键 ↑ ↓ ← → 移动 ｜ 手机：在棋盘上滑动</p>
   <p class="hint-rule">每次有效移动后会出现一个新数字（90% 是 2，10% 是 4）；相同数字相遇会合并。</p>
@@ -322,6 +380,10 @@
   var btnRestartTop = document.getElementById('restart');
   var btnRestartOverlay = document.getElementById('btn-restart-overlay');
   var themeBtn = document.getElementById('theme-toggle');
+  var aiStartBtn = document.getElementById('ai-start');
+  var aiStopBtn = document.getElementById('ai-stop');
+  var aiStatusEl = document.getElementById('ai-status');
+  var aiSearchEl = document.getElementById('ai-search');
   var historyTotalEl = document.getElementById('history-total');
   var historyBestEl = document.getElementById('history-best');
   var historyMaxTileEl = document.getElementById('history-max-tile');
@@ -598,24 +660,26 @@
 
   /* ============ 4. 四个方向的抽取与写回 ============ */
   /* getLine：按方向取第 i 条“线”，统一整理成朝索引 0 滑动 */
-  function getLine(dir, i) {
+  function getLine(dir, i, board) {
+    var source = board || state.grid;
     var line = [];
     for (var k = 0; k < SIZE; k++) {
-      if (dir === 'left')      line.push(state.grid[i][k]);          // 行：左→右
-      else if (dir === 'right') line.push(state.grid[i][SIZE - 1 - k]); // 行反转：右→左
-      else if (dir === 'up')   line.push(state.grid[k][i]);          // 列：上→下
-      else if (dir === 'down') line.push(state.grid[SIZE - 1 - k][i]);  // 列反转：下→上
+      if (dir === 'left')      line.push(source[i][k]);          // 行：左→右
+      else if (dir === 'right') line.push(source[i][SIZE - 1 - k]); // 行反转：右→左
+      else if (dir === 'up')   line.push(source[k][i]);          // 列：上→下
+      else if (dir === 'down') line.push(source[SIZE - 1 - k][i]);  // 列反转：下→上
     }
     return line;
   }
   /* setLine：把滑动结果写回（与 getLine 的方向成镜像） */
-  function setLine(dir, i, line) {
+  function setLine(dir, i, line, board) {
+    var target = board || state.grid;
     for (var k = 0; k < SIZE; k++) {
       var val = line[k];
-      if (dir === 'left')       state.grid[i][k] = val;
-      else if (dir === 'right') state.grid[i][SIZE - 1 - k] = val;
-      else if (dir === 'up')    state.grid[k][i] = val;
-      else if (dir === 'down')  state.grid[SIZE - 1 - k][i] = val;
+      if (dir === 'left')       target[i][k] = val;
+      else if (dir === 'right') target[i][SIZE - 1 - k] = val;
+      else if (dir === 'up')    target[k][i] = val;
+      else if (dir === 'down')  target[SIZE - 1 - k][i] = val;
     }
   }
 
@@ -688,8 +752,404 @@
     return true;
   }
 
+  /* ============ 6.1 Expectimax AI 核心搜索（只读搜索，不控制真实游戏） ============ */
+  var AI_DEPTH = 3;
+  var AI_DIRECTIONS = ['up', 'down', 'left', 'right'];
+  var AI_CORNER_ROW = SIZE - 1; // 固定右下角作为最大数字目标位置
+  var AI_CORNER_COL = SIZE - 1;
+  /* 从左上角沿蛇形路径到右下角的权重，与右下角策略保持一致 */
+  var AI_SNAKE_WEIGHTS = [
+    [0, 1, 2, 3],
+    [7, 6, 5, 4],
+    [8, 9, 10, 11],
+    [15, 14, 13, 12]
+  ];
+  var aiNodes = 0;
+
+  function cloneBoard(board) {
+    var copy = [];
+    for (var r = 0; r < SIZE; r++) copy.push(board[r].slice());
+    return copy;
+  }
+
+  function log2Tile(value) {
+    return value > 0 ? Math.log(value) / Math.LN2 : 0;
+  }
+
+  function isValidDirection(dir) {
+    return AI_DIRECTIONS.indexOf(dir) !== -1;
+  }
+
+  /**
+   * 在棋盘副本上模拟一次移动。纯函数，不生成随机方块，也不触碰真实 state。
+   * 返回 { board, changed, gained }，其中 gained 为本次合并得分。
+   */
+  function simulateMove(board, dir) {
+    var source = board || state.grid;
+    var next = cloneBoard(source);
+    if (!isValidDirection(dir)) {
+      return { board: next, changed: false, gained: 0 };
+    }
+
+    var changed = false;
+    var gained = 0;
+    for (var i = 0; i < SIZE; i++) {
+      var res = slideLine(getLine(dir, i, next));
+      if (res.changed) {
+        changed = true;
+        gained += res.gained;
+        setLine(dir, i, res.line, next);
+      }
+    }
+    return { board: next, changed: changed, gained: gained };
+  }
+
+  function getEmptyCells(board) {
+    var empty = [];
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] === 0) empty.push([r, c]);
+      }
+    }
+    return empty;
+  }
+
+  function isBoardGameOver(board) {
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] === 0) return false;
+        if (c + 1 < SIZE && board[r][c] === board[r][c + 1]) return false;
+        if (r + 1 < SIZE && board[r][c] === board[r + 1][c]) return false;
+      }
+    }
+    return true;
+  }
+
+  function getBoardMax(board) {
+    var maxTile = 0;
+    for (var r = 0; r < SIZE; r++) {
+      for (var c = 0; c < SIZE; c++) {
+        if (board[r][c] > maxTile) maxTile = board[r][c];
+      }
+    }
+    return maxTile;
+  }
+
+  function lineMonotonicity(line) {
+    var increasePenalty = 0;
+    var decreasePenalty = 0;
+    var previous = null;
+    for (var i = 0; i < line.length; i++) {
+      if (line[i] === 0) continue;
+      var current = log2Tile(line[i]);
+      if (previous !== null) {
+        var diff = current - previous;
+        if (diff > 0) increasePenalty -= diff;
+        else if (diff < 0) decreasePenalty += diff;
+      }
+      previous = current;
+    }
+    return Math.max(increasePenalty, decreasePenalty);
+  }
+
+  /**
+   * 棋盘启发式评分。分数越高越好，重点考虑空格和单调性，其次为固定右下角、
+   * 蛇形分布、平滑度与合并潜力，直接合并收益只占较小权重。
+   */
+  function evaluateBoard(board) {
+    var source = board || state.grid;
+    var emptyCells = getEmptyCells(source);
+    var monotonicity = 0;
+    var smoothness = 0;
+    var mergePotential = 0;
+    var directMergeScore = 0;
+    var cornerStrategy = 0;
+    var snakeError = 0;
+    var snakeTiles = 0;
+    var maxTile = getBoardMax(source);
+    var maxExponent = log2Tile(maxTile);
+    var maxRow = -1;
+    var maxCol = -1;
+
+    for (var r = 0; r < SIZE; r++) {
+      monotonicity += lineMonotonicity(source[r]);
+      var col = [];
+      for (var cr = 0; cr < SIZE; cr++) col.push(source[cr][r]);
+      monotonicity += lineMonotonicity(col);
+
+      for (var c = 0; c < SIZE; c++) {
+        var value = source[r][c];
+        if (value === 0) continue;
+        var currentExponent = log2Tile(value);
+        var distanceToCorner = Math.abs(r - AI_CORNER_ROW) + Math.abs(c - AI_CORNER_COL);
+        var cornerRatio = 1 - distanceToCorner / (2 * (SIZE - 1));
+        cornerStrategy += currentExponent * cornerRatio;
+
+        var targetExponent = maxExponent * AI_SNAKE_WEIGHTS[r][c] / AI_SNAKE_WEIGHTS[AI_CORNER_ROW][AI_CORNER_COL];
+        snakeError += Math.abs(currentExponent - targetExponent);
+        snakeTiles++;
+
+        if (value === maxTile) {
+          if (maxRow === -1 || (r === AI_CORNER_ROW && c === AI_CORNER_COL)) {
+            maxRow = r;
+            maxCol = c;
+          }
+        }
+        if (c + 1 < SIZE && source[r][c + 1] !== 0) {
+          smoothness -= Math.abs(currentExponent - log2Tile(source[r][c + 1]));
+          if (value === source[r][c + 1]) {
+            mergePotential += currentExponent;
+            directMergeScore += value;
+          }
+        }
+        if (r + 1 < SIZE && source[r + 1][c] !== 0) {
+          smoothness -= Math.abs(currentExponent - log2Tile(source[r + 1][c]));
+          if (value === source[r + 1][c]) {
+            mergePotential += currentExponent;
+            directMergeScore += value;
+          }
+        }
+      }
+    }
+
+    if (maxRow === -1) {
+      maxRow = AI_CORNER_ROW;
+      maxCol = AI_CORNER_COL;
+    }
+    var maxDistance = Math.abs(maxRow - AI_CORNER_ROW) + Math.abs(maxCol - AI_CORNER_COL);
+    var maxCornerRatio = 1 - maxDistance / (2 * (SIZE - 1));
+    var maxPositionScore = maxExponent * maxCornerRatio;
+    var snakeScore = snakeTiles > 0 ? -snakeError : 0;
+
+    return emptyCells.length * 250
+      + monotonicity * 45
+      + maxPositionScore * 80
+      + cornerStrategy * 12
+      + smoothness * 18
+      + snakeScore * 30
+      + mergePotential * 15
+      + (Math.log(directMergeScore + 1) / Math.LN2) * 8;
+  }
+
+  /**
+   * Expectimax 递归搜索。
+   * max 节点：枚举四个方向的合法移动并取最大值。
+   * chance 节点：平均枚举每个空格，再分别计算生成 2（0.9）和 4（0.1）的期望值。
+   */
+  function expectimax(board, depth, nodeType) {
+    aiNodes++;
+    var source = board || state.grid;
+    var remaining = Math.max(0, Math.floor(Number(depth) || 0));
+    var type = String(nodeType || 'max').toLowerCase();
+
+    if (remaining === 0) return evaluateBoard(source);
+
+    if (type === 'max') {
+      var bestValue = -Infinity;
+      var hasLegalMove = false;
+      for (var i = 0; i < AI_DIRECTIONS.length; i++) {
+        var sim = simulateMove(source, AI_DIRECTIONS[i]);
+        if (!sim.changed) continue;
+        hasLegalMove = true;
+        var value = expectimax(sim.board, remaining - 1, 'chance');
+        if (value > bestValue) bestValue = value;
+      }
+      return hasLegalMove ? bestValue : evaluateBoard(source);
+    }
+
+    if (type === 'chance') {
+      var empty = getEmptyCells(source);
+      if (empty.length === 0) return evaluateBoard(source);
+
+      var total = 0;
+      var cellProbability = 1 / empty.length;
+      for (var e = 0; e < empty.length; e++) {
+        var row = empty[e][0];
+        var col = empty[e][1];
+
+        var boardWith2 = cloneBoard(source);
+        boardWith2[row][col] = 2;
+        total += cellProbability * 0.9 * expectimax(boardWith2, remaining - 1, 'max');
+
+        var boardWith4 = cloneBoard(source);
+        boardWith4[row][col] = 4;
+        total += cellProbability * 0.1 * expectimax(boardWith4, remaining - 1, 'max');
+      }
+      return total;
+    }
+
+    return evaluateBoard(source);
+  }
+
+  /**
+   * 返回当前棋盘的最佳方向及搜索统计。搜索不会生成真实方块或修改真实 state。
+   */
+  function getBestMove(board) {
+    var source = board || state.grid;
+    var started = window.performance && window.performance.now
+      ? window.performance.now()
+      : Date.now();
+    aiNodes = 0;
+    aiNodes++; // 根 MAX 节点
+
+    var bestMove = null;
+    var bestValue = -Infinity;
+    for (var i = 0; i < AI_DIRECTIONS.length; i++) {
+      var dir = AI_DIRECTIONS[i];
+      var sim = simulateMove(source, dir);
+      if (!sim.changed) continue;
+      var value = expectimax(sim.board, AI_DEPTH - 1, 'chance');
+      if (bestMove === null || value > bestValue) {
+        bestMove = dir;
+        bestValue = value;
+      }
+    }
+
+    if (bestMove === null) bestValue = evaluateBoard(source);
+
+    var ended = window.performance && window.performance.now
+      ? window.performance.now()
+      : Date.now();
+    return {
+      move: bestMove,
+      value: bestValue,
+      depth: AI_DEPTH,
+      nodes: aiNodes,
+      elapsed: ended - started
+    };
+  }
+
+  /* ============ 6.2 AI 自动驾驶控制器（只调用真实 move，不直接改写游戏状态） ============ */
+  var AI_DELAY = 120;
+  var AI_DIRECTION_TEXT = {
+    up: '上',
+    down: '下',
+    left: '左',
+    right: '右'
+  };
+  var aiController = {
+    active: false,
+    timerId: null,
+    generation: 0,
+    config: { delay: AI_DELAY },
+    lastResult: null
+  };
+
+  function setAIStatus(stateKey, text) {
+    aiStatusEl.setAttribute('data-state', stateKey);
+    aiStatusEl.textContent = text;
+  }
+
+  function updateAIControls() {
+    var canStart = state.status === 'playing' && !aiController.active;
+    aiStartBtn.disabled = !canStart;
+    aiStopBtn.disabled = !aiController.active;
+  }
+
+  function updateAISearchInfo(result) {
+    aiController.lastResult = result || null;
+    if (!result || !result.move) {
+      aiSearchEl.textContent = 'AI 搜索：没有合法移动';
+      return;
+    }
+
+    var direction = AI_DIRECTION_TEXT[result.move] || result.move;
+    var elapsed = Number(result.elapsed) || 0;
+    elapsed = elapsed < 10 ? Math.round(elapsed * 10) / 10 : Math.round(elapsed);
+    aiSearchEl.textContent = 'AI 搜索：方向：' + direction +
+      ' ｜ 深度：' + result.depth +
+      ' ｜ 节点：' + result.nodes +
+      ' ｜ 耗时：' + elapsed + ' ms';
+  }
+
+  /**
+   * 停止 AI，并用 generation token 让已经排队的旧任务失效。
+   * stateKey/text 用于区分用户停止与自动结束状态。
+   */
+  function stopAI(stateKey, text) {
+    if (typeof stateKey !== 'string') {
+      stateKey = null;
+      text = '';
+    }
+    var wasActive = aiController.active || aiController.timerId !== null;
+    aiController.active = false;
+    if (aiController.timerId !== null) {
+      clearTimeout(aiController.timerId);
+      aiController.timerId = null;
+    }
+    aiController.generation++;
+
+    if (stateKey) {
+      setAIStatus(stateKey, text || '');
+    } else if (wasActive) {
+      setAIStatus('idle', 'AI 状态：已停止');
+    }
+    updateAIControls();
+  }
+
+  /**
+   * 执行一步 AI：搜索 → 调用真实 move() → 根据真实状态决定是否继续。
+   * 每一步只安排一个 setTimeout，避免固定 interval 与递归搜索并发。
+   */
+  function aiStep(generation) {
+    if (!aiController.active || generation !== aiController.generation) return;
+    if (state.status !== 'playing') {
+      if (state.status === 'won') stopAI('won', 'AI 状态：已达到 2048');
+      else if (state.status === 'over') stopAI('over', 'AI 状态：游戏结束');
+      else stopAI();
+      return;
+    }
+
+    var result = getBestMove(state.grid);
+    if (!aiController.active || generation !== aiController.generation) return;
+    updateAISearchInfo(result);
+
+    if (!result || !result.move) {
+      stopAI('no-move', 'AI 状态：没有合法移动');
+      return;
+    }
+
+    var moved = move(result.move);
+    if (!aiController.active || generation !== aiController.generation) return;
+
+    if (!moved) {
+      stopAI('idle', 'AI 状态：已停止');
+      return;
+    }
+    if (state.status === 'won') {
+      stopAI('won', 'AI 状态：已达到 2048');
+      return;
+    }
+    if (state.status === 'over') {
+      stopAI('over', 'AI 状态：游戏结束');
+      return;
+    }
+
+    aiController.timerId = window.setTimeout(function () {
+      aiController.timerId = null;
+      aiStep(generation);
+    }, aiController.config.delay);
+  }
+
+  function startAI() {
+    if (aiController.active) return;
+    if (state.status !== 'playing') {
+      updateAIControls();
+      return;
+    }
+
+    aiController.active = true;
+    aiController.generation++;
+    var generation = aiController.generation;
+    aiController.lastResult = null;
+    setAIStatus('running', 'AI 状态：运行中');
+    updateAIControls();
+    aiStep(generation);
+  }
+
   /* ============ 7. 重开 / 继续 ============ */
   function newGame() {
+    stopAI();
     if (state.status === 'over' || state.status === 'won') {
       recordGameIfNeeded(); // 重开时补记已结束的终局；进行中的对局不记录
     }
@@ -700,6 +1160,8 @@
     recordedThisGame = false;
     spawnTile();
     spawnTile();
+    setAIStatus('idle', 'AI 状态：未运行');
+    aiSearchEl.textContent = 'AI 搜索：等待启动';
     render();
   }
 
@@ -740,6 +1202,7 @@
     }
     bestEl.textContent = bestScore;
     scoreEl.textContent = state.score;
+    updateAIControls();
 
     if (state.status === 'won') {
       overlayTitleEl.textContent = '你赢了！';
@@ -768,6 +1231,7 @@
     var dir = KEY_DIR[e.key];
     if (!dir) return;
     e.preventDefault(); // 阻止方向键滚动页面
+    stopAI();
     move(dir);
   });
 
@@ -785,6 +1249,7 @@
     var dy = t.clientY - touchStart.y;
     touchStart = null;
     if (Math.abs(dx) < SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) return; // 低于阈值不移动
+    stopAI();
     if (Math.abs(dx) > Math.abs(dy)) {
       move(dx > 0 ? 'right' : 'left');
     } else {
@@ -796,6 +1261,8 @@
   btnRestartOverlay.addEventListener('click', newGame);
   btnContinue.addEventListener('click', continueGame);
   themeBtn.addEventListener('click', toggleTheme);
+  aiStartBtn.addEventListener('click', startAI);
+  aiStopBtn.addEventListener('click', function () { stopAI(); });
 
   /* ============ 10. 调试接口 ============ */
   window.__game = {
@@ -807,6 +1274,17 @@
     hasWon: hasWon,
     render: render,
     getBestScore: function () { return bestScore; },
+    ai: {
+      getBestMove: getBestMove,
+      evaluateBoard: evaluateBoard,
+      expectimax: expectimax,
+      simulateMove: simulateMove,
+      cloneBoard: cloneBoard,
+      isBoardGameOver: isBoardGameOver,
+      startAI: startAI,
+      stopAI: stopAI,
+      controller: aiController
+    }
   };
 
   /* ============ 11. 启动 ============ */
