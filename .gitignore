@@ -5,3 +5,11 @@
 *.out
 
 build/
+
+# Local Python / simulation environment
+.venv/
+__pycache__/
+*.py[cod]
+*.raw
+*.log
+.pytest_cache/

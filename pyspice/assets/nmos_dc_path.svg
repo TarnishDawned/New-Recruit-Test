@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+  <title id="title">NMOS common-source DC bias path</title>
+  <desc id="desc">DC path with a five volt supply, sixty and forty kilohm gate divider, two kilohm drain resistor and NMOS transistor.</desc>
+  <rect width="900" height="520" fill="#ffffff"/>
+  <g fill="none" stroke="#172554" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="140" y1="70" x2="760" y2="70"/><line x1="290" y1="70" x2="290" y2="135"/><rect x="268" y="135" width="44" height="115" rx="4"/><line x1="290" y1="250" x2="290" y2="390"/><rect x="268" y="390" width="44" height="105" rx="4"/><line x1="290" y1="495" x2="290" y2="515"/><line x1="270" y1="515" x2="310" y2="515"/>
+    <line x1="290" y1="305" x2="420" y2="305"/><line x1="420" y1="275" x2="420" y2="405"/><line x1="460" y1="260" x2="460" y2="420"/><line x1="460" y1="305" x2="610" y2="305"/><line x1="460" y1="330" x2="585" y2="330"/><path d="M565 330 L585 330 L576 318 Z" fill="#0e7490" stroke="#0e7490"/><line x1="585" y1="330" x2="610" y2="330"/><line x1="460" y1="390" x2="610" y2="390"/><line x1="610" y1="305" x2="610" y2="390"/><line x1="610" y1="390" x2="610" y2="515"/><line x1="590" y1="515" x2="630" y2="515"/>
+    <line x1="610" y1="70" x2="610" y2="135"/><rect x="588" y="135" width="44" height="115" rx="4"/><line x1="610" y1="250" x2="610" y2="305"/>
+  </g>
+  <g fill="#172554" font-family="Arial, Helvetica, sans-serif" font-size="18">
+    <text x="155" y="47">VDD = 5 V</text><text x="105" y="195">Rg1 = 60 kOhm</text><text x="105" y="452">Rg2 = 40 kOhm</text><text x="635" y="200">Rd = 2 kOhm</text>
+    <text x="330" y="280">VGS = 2 V</text><text x="635" y="325">VDS ~= 3.29 V</text><text x="635" y="370">ID ~= 0.853 mA</text><text x="405" y="470">M1, Level 1</text>
+  </g>
+  <circle cx="290" cy="70" r="5" fill="#0e7490"/><circle cx="610" cy="70" r="5" fill="#0e7490"/><circle cx="610" cy="305" r="5" fill="#0e7490"/>
+</svg>

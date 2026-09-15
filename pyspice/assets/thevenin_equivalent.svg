@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" role="img" aria-labelledby="title desc">
+  <title id="title">Thevenin equivalent circuit</title>
+  <desc id="desc">A 7.2 volt Thevenin source, a 1.2 kilohm Thevenin resistance and a 1 kilohm load.</desc>
+  <rect width="900" height="500" fill="#ffffff"/>
+  <g fill="none" stroke="#172554" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="125" cy="245" r="34"/><line x1="112" y1="247" x2="138" y2="247"/><line x1="125" y1="233" x2="125" y2="261"/>
+    <line x1="125" y1="279" x2="125" y2="395"/><line x1="105" y1="395" x2="145" y2="395"/><line x1="113" y1="407" x2="137" y2="407"/><line x1="121" y1="419" x2="129" y2="419"/>
+    <line x1="125" y1="211" x2="125" y2="130"/><line x1="125" y1="130" x2="245" y2="130"/>
+    <rect x="245" y="108" width="150" height="44" rx="4"/><line x1="395" y1="130" x2="610" y2="130"/>
+    <circle cx="610" cy="130" r="6" fill="#0e7490"/><circle cx="610" cy="400" r="6" fill="#0e7490"/>
+    <line x1="610" y1="130" x2="610" y2="185"/><rect x="588" y="185" width="44" height="120" rx="4"/>
+    <line x1="610" y1="305" x2="610" y2="400"/><line x1="585" y1="400" x2="635" y2="400"/><line x1="603" y1="412" x2="617" y2="412"/><line x1="607" y1="422" x2="613" y2="422"/>
+    <line x1="610" y1="130" x2="785" y2="130"/><line x1="785" y1="130" x2="785" y2="185"/><rect x="763" y="185" width="44" height="120" rx="4"/>
+    <line x1="785" y1="305" x2="785" y2="400"/><line x1="760" y1="400" x2="810" y2="400"/><line x1="778" y1="412" x2="792" y2="412"/><line x1="782" y1="422" x2="788" y2="422"/>
+    <line x1="610" y1="400" x2="785" y2="400"/>
+  </g>
+  <g fill="#172554" font-family="Arial, Helvetica, sans-serif" font-size="18">
+    <text x="57" y="220">Vth = 7.2 V</text><text x="274" y="92">Rth = 1.2 kOhm</text><text x="655" y="252">RL = 1 kOhm</text>
+    <text x="638" y="112">A</text><text x="638" y="416">B</text><text x="470" y="105">Terminals A-B</text>
+  </g>
+</svg>

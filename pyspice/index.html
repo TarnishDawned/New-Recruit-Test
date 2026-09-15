@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="邓家轩的 PySpice 电路仿真成果：RC 低通滤波、戴维南定理验证与 NMOS 共源级放大电路。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23164b78'/%3E%3Ctext x='50' y='72' text-anchor='middle' font-size='58' fill='white' font-family='Arial'%3EP%3C/text%3E%3C/svg%3E">
+  <title>PySpice 电路仿真成果 | 邓家轩</title>
+  <style>
+    :root {
+      --bg: #f4f7fa;
+      --surface: #ffffff;
+      --surface-soft: #eef5f8;
+      --ink: #17324b;
+      --muted: #60758a;
+      --line: #dce6ee;
+      --blue: #164b78;
+      --blue-soft: #e8f2f8;
+      --cyan: #087e9d;
+      --cyan-soft: #e5f6f8;
+      --pass: #08785c;
+      --pass-soft: #e7f6f0;
+      --warning: #a15c00;
+      --warning-soft: #fff4df;
+      --radius: 14px;
+      --shadow: 0 12px 32px rgba(22, 75, 120, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(8, 126, 157, 0.08), transparent 28rem),
+        var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.7;
+    }
+
+    a {
+      color: var(--cyan);
+      text-underline-offset: 3px;
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    code {
+      padding: 0.14rem 0.38rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface-soft);
+      color: var(--blue);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.92em;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -4rem;
+      z-index: 10;
+      padding: 0.6rem 0.9rem;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .skip-link:focus {
+      top: 1rem;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-bottom: 1px solid rgba(220, 230, 238, 0.88);
+      background: rgba(244, 247, 250, 0.94);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem 1.4rem;
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 0.85rem 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      color: var(--ink);
+      font-weight: 800;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 2rem;
+      height: 2rem;
+      place-items: center;
+      border-radius: 9px;
+      background: linear-gradient(145deg, var(--blue), var(--cyan));
+      color: #fff;
+      font-size: 0.80rem;
+      box-shadow: 0 7px 18px rgba(22, 75, 120, 0.20);
+    }
+
+    .topnav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.9rem;
+      font-size: 0.92rem;
+    }
+
+    .topnav a {
+      color: var(--muted);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .topnav a:hover,
+    .topnav a:focus-visible {
+      color: var(--cyan);
+    }
+
+    .container {
+      width: min(1120px, calc(100% - 2rem));
+      margin: 0 auto;
+    }
+
+    .hero {
+      padding: 3.7rem 0 2.5rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin: 0 0 0.8rem;
+      color: var(--cyan);
+      font-size: 0.82rem;
+      font-weight: 850;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 1.6rem;
+      height: 2px;
+      background: var(--cyan);
+      content: "";
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 12ch;
+      margin-bottom: 1rem;
+      font-size: clamp(2.35rem, 7vw, 4.7rem);
+      line-height: 1.06;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-copy {
+      max-width: 43rem;
+      margin-bottom: 1.35rem;
+      color: var(--muted);
+      font-size: 1.08rem;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .tag {
+      padding: 0.34rem 0.68rem;
+      border: 1px solid #cbe0e8;
+      border-radius: 999px;
+      background: var(--cyan-soft);
+      color: #075b72;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .hero-panel {
+      padding: 1.35rem;
+      border: 1px solid var(--line);
+      border-radius: calc(var(--radius) + 4px);
+      background: linear-gradient(160deg, #ffffff, #edf5f8);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-panel h2 {
+      margin-bottom: 0.35rem;
+      font-size: 1.05rem;
+    }
+
+    .hero-panel > p {
+      margin-bottom: 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+
+    .hero-stat {
+      min-width: 0;
+      padding: 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    .hero-stat strong {
+      display: block;
+      color: var(--blue);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 1.22rem;
+      line-height: 1.25;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-top: 0.18rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    main {
+      padding-bottom: 3rem;
+    }
+
+    .section {
+      padding: 2.1rem 0;
+      scroll-margin-top: 5rem;
+    }
+
+    .section + .section {
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      gap: 0.5rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .section-kicker {
+      color: var(--cyan);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .section h2 {
+      margin-bottom: 0;
+      font-size: clamp(1.65rem, 4vw, 2.35rem);
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+    }
+
+    .section-intro {
+      max-width: 52rem;
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .method-grid,
+    .card-grid,
+    .figure-grid,
+    .metric-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .method-card,
+    .data-card,
+    .figure-card,
+    .result-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 7px 22px rgba(22, 75, 120, 0.045);
+    }
+
+    .method-card,
+    .data-card,
+    .result-card {
+      padding: 1.05rem;
+    }
+
+    .method-card span,
+    .result-card span {
+      display: block;
+      margin-bottom: 0.35rem;
+      color: var(--cyan);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .method-card h3,
+    .data-card h3,
+    .figure-card h3,
+    .result-card h3 {
+      margin-bottom: 0.45rem;
+      font-size: 1.03rem;
+    }
+
+    .method-card p,
+    .result-card p,
+    .figure-card p,
+    .data-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 0.91rem;
+    }
+
+    .data-card.accent {
+      border-color: #bfe0e8;
+      background: linear-gradient(145deg, #f8fdfe, #edf8fa);
+    }
+
+    .formula {
+      display: block;
+      margin: 0.7rem 0;
+      color: var(--blue);
+      font-family: "Cambria Math", Georgia, serif;
+      font-size: 1.18rem;
+      font-weight: 700;
+    }
+
+    .metric-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metric {
+      padding: 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--blue);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 1.08rem;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.79rem;
+    }
+
+    .figure-card {
+      overflow: hidden;
+    }
+
+    .figure-card figure {
+      margin: 0;
+    }
+
+    .figure-card .image-link {
+      display: block;
+      padding: 0.65rem;
+      background: #fff;
+    }
+
+    .figure-card img {
+      border: 1px solid #edf1f4;
+      border-radius: 8px;
+    }
+
+    .figure-card figcaption {
+      padding: 0.9rem 1rem 1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .figure-card figcaption strong {
+      color: var(--ink);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    table {
+      width: 100%;
+      min-width: 620px;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    caption {
+      padding: 0.8rem 1rem;
+      color: var(--muted);
+      text-align: left;
+      font-size: 0.84rem;
+    }
+
+    th,
+    td {
+      padding: 0.72rem 0.8rem;
+      border-top: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f7fafc;
+      color: var(--blue);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    td.numeric,
+    th.numeric {
+      font-family: Consolas, "SFMono-Regular", monospace;
+      white-space: nowrap;
+    }
+
+    .pass {
+      display: inline-block;
+      padding: 0.18rem 0.48rem;
+      border-radius: 999px;
+      background: var(--pass-soft);
+      color: var(--pass);
+      font-size: 0.78rem;
+      font-weight: 850;
+    }
+
+    .note {
+      padding: 0.95rem 1rem;
+      border-left: 4px solid var(--cyan);
+      border-radius: 0 10px 10px 0;
+      background: var(--cyan-soft);
+      color: #315363;
+      font-size: 0.9rem;
+    }
+
+    .note.warning {
+      border-left-color: #d58a18;
+      background: var(--warning-soft);
+      color: #6f4b15;
+    }
+
+    .source-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-top: 0.9rem;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.42rem 0.68rem;
+      border: 1px solid #cbdde5;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--blue);
+      font-size: 0.84rem;
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .source-link:hover,
+    .source-link:focus-visible {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .result-card {
+      border-top: 4px solid var(--pass);
+    }
+
+    .result-card strong {
+      color: var(--pass);
+      font-family: Consolas, "SFMono-Regular", monospace;
+    }
+
+    .status-table td:last-child,
+    .status-table th:last-child {
+      text-align: center;
+    }
+
+    footer {
+      padding: 2rem 0 2.5rem;
+      border-top: 1px solid var(--line);
+      background: #edf3f7;
+    }
+
+    .footer-inner {
+      display: grid;
+      gap: 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem 1rem;
+    }
+
+    .footer-links a {
+      color: var(--blue);
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    @media (min-width: 720px) {
+      .method-grid,
+      .card-grid,
+      .figure-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .section-head {
+        grid-template-columns: minmax(0, 0.8fr) minmax(20rem, 1.2fr);
+        align-items: end;
+      }
+
+      .footer-inner {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+      }
+    }
+
+    @media (min-width: 960px) {
+      .hero {
+        padding: 5rem 0 3.5rem;
+      }
+
+      .hero-grid {
+        grid-template-columns: minmax(0, 1.25fr) minmax(22rem, 0.75fr);
+      }
+
+      .method-grid,
+      .figure-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .section {
+        padding: 3rem 0;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(20rem, 0.9fr);
+        gap: 1rem;
+        align-items: start;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="../index.html">
+        <span class="brand-mark">DJ</span>
+        <span>邓家轩 · 项目成果</span>
+      </a>
+      <nav class="topnav" aria-label="页面导航">
+        <a href="#method">方法</a>
+        <a href="#rc">RC 滤波</a>
+        <a href="#thevenin">戴维南</a>
+        <a href="#nmos">NMOS 放大</a>
+        <a href="#summary">总结</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <p class="eyebrow">Python · PySpice · Ngspice</p>
+        <h1>PySpice 电路仿真</h1>
+        <p class="hero-copy">
+          用可复现的 Python 脚本完成三个进阶电路实验：先手算理论值，再调用 Ngspice 仿真，最后自动比较误差。
+          每一组结果都保留电路图、关键公式、数据表和波形图，方便复核与讲解。
+        </p>
+        <ul class="tag-list" aria-label="技术标签">
+          <li class="tag">动态电路</li>
+          <li class="tag">电路定理</li>
+          <li class="tag">MOS 小信号</li>
+          <li class="tag">自动化校验</li>
+        </ul>
+      </div>
+
+      <aside class="hero-panel" aria-label="成果概览">
+        <h2>成果概览</h2>
+        <p>全部脚本均可独立运行，运行结束会输出理论值、仿真值与 PASS/FAIL 结果。</p>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong>3/3</strong><span>电路验证通过</span></div>
+          <div class="hero-stat"><strong>0.001%</strong><span>RC 参数误差</span></div>
+          <div class="hero-stat"><strong>0.2032%</strong><span>NMOS 增益误差</span></div>
+          <div class="hero-stat"><strong>4</strong><span>组主要结果图</span></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <main id="main" class="container">
+    <section id="method" class="section" aria-labelledby="method-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">00 / WORKFLOW</div>
+          <h2 id="method-title">统一的验证流程</h2>
+        </div>
+        <p class="section-intro">
+          P2 没有只截取“看起来正确”的波形，而是把理论计算写进每个脚本，再从仿真数据中自动提取关键指标并计算相对误差。
+        </p>
+      </div>
+
+      <div class="method-grid">
+        <article class="method-card">
+          <span>STEP 01</span>
+          <h3>建立电路模型</h3>
+          <p>固定题目参数，建立原电路、等效电路或交直流分析模型，并生成可编辑 SVG 电路图。</p>
+        </article>
+        <article class="method-card">
+          <span>STEP 02</span>
+          <h3>手算理论值</h3>
+          <p>根据 RC、戴维南定理或 Level 1 MOS 平方律公式计算关键电压、电流、增益和工作点。</p>
+        </article>
+        <article class="method-card">
+          <span>STEP 03</span>
+          <h3>运行并自动校验</h3>
+          <p>通过 PySpice 调用 Ngspice，提取仿真结果并按预设容差输出 PASS/FAIL，结果可重复生成。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="rc" class="section" aria-labelledby="rc-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">01 / RC LOW-PASS</div>
+          <h2 id="rc-title">RC 一阶低通滤波器</h2>
+        </div>
+        <p class="section-intro">
+          用 1 kHz 方波观察充放电过程，再用 10 Hz–1 MHz 交流扫描确认截止频率。该实验验证了时间常数与频率响应的对应关系。
+        </p>
+      </div>
+
+      <div class="split">
+        <figure class="figure-card">
+          <a class="image-link" href="assets/rc_circuit.svg" target="_blank" rel="noopener">
+            <img src="assets/rc_circuit.svg" alt="RC 一阶低通滤波器电路图，输入端经过 1 千欧电阻连接 100 纳法电容，输出取自电容两端">
+          </a>
+          <figcaption><strong>RC 低通电路：</strong>R = 1 kΩ，C = 100 nF，输出取自电容两端。</figcaption>
+        </figure>
+
+        <div class="data-card accent">
+          <h3>理论计算</h3>
+          <p>时间常数由电阻和电容共同决定，截止频率是幅值下降到 1/√2（约 −3 dB）时的频率。</p>
+          <span class="formula">τ = RC = 100.000 μs</span>
+          <span class="formula">f<sub>c</sub> = 1 / (2πRC) = 1591.55 Hz</span>
+          <div class="metric-grid">
+            <div class="metric"><strong>1 kΩ</strong><span>电阻 R</span></div>
+            <div class="metric"><strong>100 nF</strong><span>电容 C</span></div>
+            <div class="metric"><strong>1 kHz</strong><span>输入方波</span></div>
+            <div class="metric"><strong>0–1 V</strong><span>输入电平</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top: 1rem;">
+        <table>
+          <caption>RC 低通：理论值、仿真提取值与误差</caption>
+          <thead>
+            <tr>
+              <th scope="col">参数</th>
+              <th scope="col" class="numeric">理论值</th>
+              <th scope="col" class="numeric">仿真提取值</th>
+              <th scope="col" class="numeric">相对误差</th>
+              <th scope="col">结论</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>时间常数 τ</td>
+              <td class="numeric">100.000 μs</td>
+              <td class="numeric">99.999 μs</td>
+              <td class="numeric">≈ 0.001%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td>截止频率 f<sub>c</sub></td>
+              <td class="numeric">1591.55 Hz</td>
+              <td class="numeric">1591.56 Hz</td>
+              <td class="numeric">≈ 0.001%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="figure-grid" style="margin-top: 1rem;">
+        <figure class="figure-card">
+          <a class="image-link" href="assets/rc_transient.png" target="_blank" rel="noopener">
+            <img src="assets/rc_transient.png" alt="RC 低通滤波器输入方波和输出电容电压的瞬态波形图">
+          </a>
+          <figcaption><strong>瞬态响应：</strong>输出按指数规律充放电，与 τ = 100 μs 的理论预测一致。</figcaption>
+        </figure>
+        <figure class="figure-card">
+          <a class="image-link" href="assets/rc_bode.png" target="_blank" rel="noopener">
+            <img src="assets/rc_bode.png" alt="RC 低通滤波器从 10 赫兹到 1 兆赫兹的幅频特性图">
+          </a>
+          <figcaption><strong>频率响应：</strong>低频近似 0 dB；1 MHz 时幅值约 0.001592，表现出明显的低通衰减。</figcaption>
+        </figure>
+      </div>
+
+      <div class="source-row">
+        <a class="source-link" href="rc_lowpass.py">查看源码：rc_lowpass.py</a>
+        <a class="source-link" href="assets/rc_circuit.svg" target="_blank" rel="noopener">打开电路 SVG</a>
+      </div>
+    </section>
+
+    <section id="thevenin" class="section" aria-labelledby="thevenin-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">02 / THEVENIN</div>
+          <h2 id="thevenin-title">戴维南定理验证</h2>
+        </div>
+        <p class="section-intro">
+          分别仿真“原始网络”和“戴维南等效网络”，比较开路电压、短路电流以及接 1 kΩ 负载后的结果，验证端口外特性等价。
+        </p>
+      </div>
+
+      <div class="figure-grid">
+        <figure class="figure-card">
+          <a class="image-link" href="assets/thevenin_source.svg" target="_blank" rel="noopener">
+            <img src="assets/thevenin_source.svg" alt="12 伏电源串联 2 千欧电阻、并联 3 千欧电阻并接 1 千欧负载的原始电路图">
+          </a>
+          <figcaption><strong>原始网络：</strong>V1 = 12 V，R1 = 2 kΩ，R2 = 3 kΩ，RL = 1 kΩ。</figcaption>
+        </figure>
+        <figure class="figure-card">
+          <a class="image-link" href="assets/thevenin_equivalent.svg" target="_blank" rel="noopener">
+            <img src="assets/thevenin_equivalent.svg" alt="7.2 伏戴维南电压源串联 1.2 千欧戴维南电阻并接 1 千欧负载的等效电路图">
+          </a>
+          <figcaption><strong>等效网络：</strong>Vth = 7.2 V，Rth = 1.2 kΩ，负载保持不变。</figcaption>
+        </figure>
+      </div>
+
+      <div class="method-grid" style="margin-top: 1rem;">
+        <article class="method-card">
+          <span>OPEN CIRCUIT</span>
+          <h3>开路电压</h3>
+          <p>移去负载后，端口电压由 12 V 经 2 kΩ 与 3 kΩ 分压得到：Vth = 12 × 3 / (2 + 3) = 7.2 V。</p>
+        </article>
+        <article class="method-card">
+          <span>EQUIVALENT RESISTANCE</span>
+          <h3>等效电阻</h3>
+          <p>独立电压源置零后，从端口看进去为 2 kΩ 与 3 kΩ 并联：Rth = 1.2 kΩ。</p>
+        </article>
+        <article class="method-card">
+          <span>SHORT CIRCUIT</span>
+          <h3>短路电流</h3>
+          <p>由 Isc = Vth / Rth 可得 7.2 V ÷ 1.2 kΩ = 6 mA，用于交叉验证等效参数。</p>
+        </article>
+      </div>
+
+      <div class="table-wrap" style="margin-top: 1rem;">
+        <table>
+          <caption>原始网络与戴维南等效网络的仿真端口结果比较</caption>
+          <thead>
+            <tr>
+              <th scope="col">端口指标</th>
+              <th scope="col" class="numeric">原始网络</th>
+              <th scope="col" class="numeric">等效网络</th>
+              <th scope="col" class="numeric">差异</th>
+              <th scope="col">结论</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>开路电压 V<sub>oc</sub></td>
+              <td class="numeric">7.200000 V</td>
+              <td class="numeric">7.200000 V</td>
+              <td class="numeric">0.000000%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td>短路电流 I<sub>sc</sub></td>
+              <td class="numeric">6.000000 mA</td>
+              <td class="numeric">6.000000 mA</td>
+              <td class="numeric">0.000000%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td>带载电压 V<sub>L</sub></td>
+              <td class="numeric">3.272727273 V</td>
+              <td class="numeric">3.272727273 V</td>
+              <td class="numeric">0.000000%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td>带载电流 I<sub>L</sub></td>
+              <td class="numeric">3.272727273 mA</td>
+              <td class="numeric">3.272727273 mA</td>
+              <td class="numeric">0.000000%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="figure-card" style="margin-top: 1rem;">
+        <a class="image-link" href="assets/thevenin_results.png" target="_blank" rel="noopener">
+          <img src="assets/thevenin_results.png" alt="戴维南原始网络与等效网络的开路、短路和带载仿真结果对比图">
+        </a>
+        <figcaption><strong>结果对比：</strong>原始网络和等效网络在三种端口条件下的关键结果完全一致，误差低于 1% 验收要求。</figcaption>
+      </figure>
+
+      <div class="source-row">
+        <a class="source-link" href="thevenin.py">查看源码：thevenin.py</a>
+        <a class="source-link" href="assets/thevenin_source.svg" target="_blank" rel="noopener">原始网络 SVG</a>
+        <a class="source-link" href="assets/thevenin_equivalent.svg" target="_blank" rel="noopener">等效网络 SVG</a>
+      </div>
+    </section>
+
+    <section id="nmos" class="section" aria-labelledby="nmos-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">03 / NMOS COMMON-SOURCE</div>
+          <h2 id="nmos-title">NMOS 共源级放大电路</h2>
+        </div>
+        <p class="section-intro">
+          电路采用 Level 1 NMOS 模型。除理想平方律结果外，还给出包含沟道长度调制系数 λ 的修正理论值，避免把模型差异误判为仿真错误。
+        </p>
+      </div>
+
+      <div class="split">
+        <figure class="figure-card">
+          <a class="image-link" href="assets/nmos_circuit.svg" target="_blank" rel="noopener">
+            <img src="assets/nmos_circuit.svg" alt="NMOS 共源级放大器完整电路图，包含分压偏置、输入耦合电容、漏极电阻和输出节点">
+          </a>
+          <figcaption><strong>完整电路：</strong>VDD = 5 V，Rg1 = 60 kΩ，Rg2 = 40 kΩ，Rd = 2 kΩ，输入 10 mV / 1 kHz。</figcaption>
+        </figure>
+        <div class="data-card accent">
+          <h3>题目参数</h3>
+          <p>NMOS 参数严格采用：K = 0.8 mA/V²，Vth = 1 V，λ = 0.02 /V，Cb1 = 10 μF。</p>
+          <div class="metric-grid">
+            <div class="metric"><strong>2 V</strong><span>栅极直流偏置</span></div>
+            <div class="metric"><strong>2 kΩ</strong><span>漏极电阻 Rd</span></div>
+            <div class="metric"><strong>10 mV</strong><span>输入小信号幅值</span></div>
+            <div class="metric"><strong>1 kHz</strong><span>测试频率</span></div>
+          </div>
+          <p class="note" style="margin-top: 1rem;">
+            SPICE Level 1 参数的 <code>kp</code> 与题目平方律系数不同：在 W/L = 1 时，脚本使用 <code>kp = 2K = 1.6 mA/V²</code>。
+          </p>
+        </div>
+      </div>
+
+      <div class="figure-grid" style="margin-top: 1rem;">
+        <figure class="figure-card">
+          <a class="image-link" href="assets/nmos_dc_path.svg" target="_blank" rel="noopener">
+            <img src="assets/nmos_dc_path.svg" alt="NMOS 共源级放大器的直流偏置路径示意图">
+          </a>
+          <figcaption><strong>直流分析：</strong>偏置路径决定 VGS、ID 和 VDS，用于确认晶体管工作在饱和区。</figcaption>
+        </figure>
+        <figure class="figure-card">
+          <a class="image-link" href="assets/nmos_small_signal.svg" target="_blank" rel="noopener">
+            <img src="assets/nmos_small_signal.svg" alt="NMOS 共源级放大器的小信号等效电路图，包含跨导源和输出电阻">
+          </a>
+          <figcaption><strong>小信号模型：</strong>用 gm·vgs 电流源与 ro 表示 MOS 管，分析电压增益 Av = −gm(Rd ∥ ro)。</figcaption>
+        </figure>
+      </div>
+
+      <div class="table-wrap" style="margin-top: 1rem;">
+        <table>
+          <caption>NMOS 共源级：理想平方律、含 λ 修正与仿真结果</caption>
+          <thead>
+            <tr>
+              <th scope="col">指标</th>
+              <th scope="col" class="numeric">理想平方律</th>
+              <th scope="col" class="numeric">含 λ 修正理论</th>
+              <th scope="col" class="numeric">SPICE 仿真</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>栅源电压 V<sub>GS</sub></td>
+              <td class="numeric">2.0000 V</td>
+              <td class="numeric">2.0000 V</td>
+              <td class="numeric">2.000000 V</td>
+            </tr>
+            <tr>
+              <td>静态漏极电流 I<sub>D</sub></td>
+              <td class="numeric">0.8000 mA</td>
+              <td class="numeric">0.8527 mA</td>
+              <td class="numeric">0.852713 mA</td>
+            </tr>
+            <tr>
+              <td>漏源电压 V<sub>DS</sub></td>
+              <td class="numeric">3.4000 V</td>
+              <td class="numeric">3.2946 V</td>
+              <td class="numeric">3.294574 V</td>
+            </tr>
+            <tr>
+              <td>跨导 g<sub>m</sub></td>
+              <td class="numeric">1.6000 mS</td>
+              <td class="numeric">1.7054 mS</td>
+              <td class="numeric">1.705426 mS</td>
+            </tr>
+            <tr>
+              <td>输出电阻 r<sub>o</sub></td>
+              <td class="numeric">62.500 kΩ</td>
+              <td class="numeric">58.636 kΩ</td>
+              <td class="numeric">—</td>
+            </tr>
+            <tr>
+              <td>电压增益 |A<sub>v</sub>|</td>
+              <td class="numeric">3.1008</td>
+              <td class="numeric">3.2984</td>
+              <td class="numeric">3.305052</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="metric-grid" style="margin-top: 1rem;">
+        <div class="result-card">
+          <span>GAIN ERROR</span>
+          <strong>0.2032%</strong>
+          <p>相对含 λ 修正理论值，低于 10% 验收上限。</p>
+        </div>
+        <div class="result-card">
+          <span>OUTPUT PHASE</span>
+          <strong>−0.9999974</strong>
+          <p>输入与输出相关系数，确认反相放大。</p>
+        </div>
+        <div class="result-card">
+          <span>WAVEFORM RESIDUAL</span>
+          <strong>0.0809%</strong>
+          <p>输出波形与理想正弦拟合残差很小，无明显失真。</p>
+        </div>
+        <div class="result-card">
+          <span>BIAS STATUS</span>
+          <strong>饱和区</strong>
+          <p>VDS = 3.2946 V，大于 VGS − Vth，偏置条件合理。</p>
+        </div>
+      </div>
+
+      <figure class="figure-card" style="margin-top: 1rem;">
+        <a class="image-link" href="assets/nmos_waveforms.png" target="_blank" rel="noopener">
+          <img src="assets/nmos_waveforms.png" alt="NMOS 共源级放大器的输入与输出正弦波形图，输出反相且幅度约为输入的三倍">
+        </a>
+        <figcaption><strong>瞬态波形：</strong>输入 10 mV 正弦波，输出反相且幅度约为输入的三倍，仿真增益约为 3.305。</figcaption>
+      </figure>
+
+      <p class="note warning" style="margin-top: 1rem;">
+        <strong>为什么不能只对比“理想值”：</strong>题目给出的 λ = 0.02 /V 会带来沟道长度调制。仿真使用含 λ 的 Level 1 模型，
+        因此静态工作点和增益应主要与 λ 修正理论比较；理想平方律结果仍保留作入门公式参考。
+      </p>
+
+      <div class="source-row">
+        <a class="source-link" href="nmos_common_source.py">查看源码：nmos_common_source.py</a>
+        <a class="source-link" href="assets/nmos_circuit.svg" target="_blank" rel="noopener">完整电路 SVG</a>
+        <a class="source-link" href="assets/nmos_dc_path.svg" target="_blank" rel="noopener">直流路径 SVG</a>
+        <a class="source-link" href="assets/nmos_small_signal.svg" target="_blank" rel="noopener">小信号模型 SVG</a>
+      </div>
+    </section>
+
+    <section id="summary" class="section" aria-labelledby="summary-title">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">04 / SUMMARY</div>
+          <h2 id="summary-title">验收结果</h2>
+        </div>
+        <p class="section-intro">
+          三个脚本都在本地使用 Python 3.12、PySpice 与 Ngspice 运行通过；结果图由脚本重复生成，不依赖人工填表。
+        </p>
+      </div>
+
+      <div class="table-wrap">
+        <table class="status-table">
+          <caption>P2 电路仿真验收汇总</caption>
+          <thead>
+            <tr>
+              <th scope="col">电路</th>
+              <th scope="col">核心验收条件</th>
+              <th scope="col">实测表现</th>
+              <th scope="col">结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>RC 低通滤波</td>
+              <td>τ 与截止频率误差不超过 5%，波形无明显异常</td>
+              <td class="numeric">两项误差均约 0.001%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td>戴维南定理</td>
+              <td>原电路与等效电路在开路、短路和带载下误差不超过 1%</td>
+              <td class="numeric">差异约 0.000000%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td>NMOS 共源级</td>
+              <td>工作点与 gm 误差不超过 5%，增益误差不超过 10%</td>
+              <td class="numeric">增益误差约 0.2032%</td>
+              <td><span class="pass">PASS</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note" style="margin-top: 1rem;">
+        本页是 P2 的静态成果展示，不调用 Python，也不依赖后端；双击本页即可查看全部电路图和结果图。
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div>
+        <strong>邓家轩 · 广东工业大学</strong><br>
+        PySpice 电路仿真项目成果 · 2026
+      </div>
+      <div class="footer-links">
+        <a href="../index.html">返回个人主页</a>
+        <a href="#main">返回顶部</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
